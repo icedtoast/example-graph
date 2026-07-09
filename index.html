@@ -570,7 +570,7 @@
       }
 
       function renderGraphCard(summary) {
-        const svg = summary.hasTrendData ? createSvg(summary.measurements) : "";
+        const svg = summary.hasTrendData ? createSvg(summary) : "";
         const firstDate = summary.measurements[0]?.date;
         const lastDate = summary.measurements[summary.measurements.length - 1]?.date;
         const list = summary.measurements.length
@@ -605,7 +605,8 @@
         `;
       }
 
-      function createSvg(measurements) {
+      function createSvg(summary) {
+        const measurements = summary.measurements;
         const width = 640;
         const height = 240;
         const padding = 28;
@@ -631,8 +632,8 @@
             const y = padding + ratio * (height - padding * 2);
             const label = formatWeight(maxWeight - ratio * weightRange);
             return `
-              <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#d6dfeb" stroke-dasharray="4 4" />
-              <text x="0" y="${y + 4}" fill="#54708c" font-size="12">${label}</text>
+              <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#d6dfeb" stroke-dasharray="4 4" aria-hidden="true" />
+              <text x="0" y="${y + 4}" fill="#54708c" font-size="12" aria-hidden="true">${label}</text>
             `;
           })
           .join("");
@@ -640,13 +641,19 @@
         const circles = points
           .map(
             (point) => `
-              <circle cx="${point.x}" cy="${point.y}" r="4" fill="#286dc9"></circle>
+              <circle cx="${point.x}" cy="${point.y}" r="4" fill="#286dc9">
+                <title>${escapeHtml(`${point.label}: ${formatWeight(point.weight)}`)}</title>
+              </circle>
             `
           )
           .join("");
 
+        const firstDate = measurements[0]?.date;
+        const lastDate = measurements[measurements.length - 1]?.date;
+        const ariaLabel = `Weight progress graph for ${summary.exercise.name} from ${firstDate} to ${lastDate}`;
+
         return `
-          <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Exercise weight graph">
+          <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(ariaLabel)}">
             ${guideLines}
             <polyline
               fill="none"
@@ -688,6 +695,7 @@
       function setMessage(message, isError = false) {
         formMessage.textContent = message;
         formMessage.className = isError ? "message error" : "message";
+        formMessage.setAttribute("aria-live", isError ? "assertive" : "polite");
       }
 
       function daysAgo(days) {
