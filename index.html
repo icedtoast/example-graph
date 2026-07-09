@@ -304,7 +304,7 @@
       const EXERCISE_STORE = "exercises";
       const MEASUREMENT_STORE = "measurements";
       const MS_PER_DAY = 24 * 60 * 60 * 1000;
-      const DEFAULT_WEIGHT_RANGE = 1;
+      const MIN_WEIGHT_RANGE_FOR_SCALING = 1;
       const DEFAULT_EXERCISES = [
         { name: "Bicep Curl" },
         { name: "One-armed Row" },
@@ -613,7 +613,7 @@
         const weights = measurements.map((measurement) => measurement.weight);
         const minWeight = Math.min(...weights);
         const maxWeight = Math.max(...weights);
-        const weightRange = maxWeight - minWeight || DEFAULT_WEIGHT_RANGE;
+        const weightRange = maxWeight - minWeight || MIN_WEIGHT_RANGE_FOR_SCALING;
 
         const points = measurements.map((measurement, index) => {
           const x =
@@ -724,7 +724,7 @@
         }
 
         if (value < 0) {
-          return `-${Math.abs(Number(value)).toFixed(2)} kg`;
+          return `${Number(value).toFixed(2)} kg`;
         }
 
         return "0.00 kg";
