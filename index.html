@@ -412,8 +412,15 @@
       }
 
       function createIndexedDbStorage(database) {
+        function assertStoreName(storeName) {
+          if (storeName !== EXERCISE_STORE && storeName !== MEASUREMENT_STORE) {
+            throw new Error("Unknown store name.");
+          }
+        }
+
         return {
           getAll(storeName) {
+            assertStoreName(storeName);
             return new Promise((resolve, reject) => {
               const request = database.transaction(storeName, "readonly").objectStore(storeName).getAll();
               request.onsuccess = () => resolve(request.result);
@@ -421,6 +428,7 @@
             });
           },
           add(storeName, value) {
+            assertStoreName(storeName);
             return new Promise((resolve, reject) => {
               const request = database.transaction(storeName, "readwrite").objectStore(storeName).add(value);
               request.onsuccess = () => resolve(request.result);
@@ -428,6 +436,7 @@
             });
           },
           clear(storeName) {
+            assertStoreName(storeName);
             return new Promise((resolve, reject) => {
               const request = database.transaction(storeName, "readwrite").objectStore(storeName).clear();
               request.onsuccess = () => resolve();
@@ -438,9 +447,24 @@
       }
 
       function createLocalStorageStorage() {
+        function assertStoreName(storeName) {
+          if (storeName !== EXERCISE_STORE && storeName !== MEASUREMENT_STORE) {
+            throw new Error("Unknown store name.");
+          }
+        }
+
         function loadData() {
           try {
-            const parsed = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+            const serialized = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (!serialized) {
+              return {
+                exercises: [],
+                measurements: [],
+                counters: { exercises: 0, measurements: 0 },
+              };
+            }
+
+            const parsed = JSON.parse(serialized);
             if (
               parsed &&
               Array.isArray(parsed.exercises) &&
@@ -466,10 +490,12 @@
 
         return {
           async getAll(storeName) {
+            assertStoreName(storeName);
             const data = loadData();
             return data[storeName].slice();
           },
           async add(storeName, value) {
+            assertStoreName(storeName);
             const data = loadData();
             const id = data.counters[storeName] + 1;
             data.counters[storeName] = id;
@@ -478,6 +504,7 @@
             return id;
           },
           async clear(storeName) {
+            assertStoreName(storeName);
             const data = loadData();
             data[storeName] = [];
             saveData(data);
