@@ -29,3 +29,5 @@ Then open `http://127.0.0.1:8000`.
 
 Publish the repository's `githubpages` branch with GitHub Pages and browse the
 deployed URL directly without running any server locally.
+To update that branch from your working branch, merge or cherry-pick your
+changes into `githubpages` and push it before opening the site URL.

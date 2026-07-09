@@ -475,7 +475,9 @@
             ) {
               return parsed;
             }
-          } catch (error) {}
+          } catch (error) {
+            console.warn("Failed to parse saved local storage data.", error);
+          }
 
           return {
             exercises: [],
