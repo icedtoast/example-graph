@@ -436,11 +436,13 @@
         }
 
         const savedExercises = await getAll(EXERCISE_STORE);
-        const byName = new Map(savedExercises.map((exercise) => [exercise.name, exercise.id]));
+        const exerciseIdsByName = new Map(
+          savedExercises.map((exercise) => [exercise.name, exercise.id])
+        );
 
         for (const measurement of DEFAULT_MEASUREMENTS) {
           await addRecord(MEASUREMENT_STORE, {
-            exerciseId: byName.get(measurement.exerciseName),
+            exerciseId: exerciseIdsByName.get(measurement.exerciseName),
             weight: measurement.weight,
             date: measurement.date,
           });
@@ -464,11 +466,13 @@
           exercises: exercises
             .slice()
             .sort((left, right) => left.name.localeCompare(right.name)),
-          measurements: measurements.slice().sort((left, right) =>
-            left.date === right.date
-              ? left.weight - right.weight
-              : left.date.localeCompare(right.date)
-          ),
+          measurements: measurements.slice().sort((left, right) => {
+            if (left.date === right.date) {
+              return left.weight - right.weight;
+            }
+
+            return left.date < right.date ? -1 : 1;
+          }),
         };
 
         syncSelectors();
@@ -707,8 +711,15 @@
       }
 
       function formatSignedNumber(value) {
-        const sign = value > 0 ? "+" : "";
-        return `${sign}${Number(value).toFixed(2)} kg`;
+        if (value > 0) {
+          return `+${Number(value).toFixed(2)} kg`;
+        }
+
+        if (value < 0) {
+          return `-${Math.abs(Number(value)).toFixed(2)} kg`;
+        }
+
+        return "0.00 kg";
       }
 
       function formatDelta(value) {
