@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exercise Progress Tracker</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, Helvetica, sans-serif;
+        --bg: #f4f7fb;
+        --surface: #ffffff;
+        --surface-alt: #eef3f9;
+        --border: #d6dfeb;
+        --text: #17324d;
+        --muted: #54708c;
+        --accent: #286dc9;
+        --accent-soft: rgba(40, 109, 201, 0.12);
+        --danger: #ba3b46;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      .hero {
+        margin-bottom: 24px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .grid.two-up {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        margin-bottom: 24px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 12px 32px rgba(23, 50, 77, 0.06);
+      }
+
+      form {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      input,
+      select,
+      button {
+        font: inherit;
+      }
+
+      input,
+      select {
+        width: 100%;
+        border: 1px solid var(--border);
+        background: var(--surface-alt);
+        border-radius: 10px;
+        padding: 10px 12px;
+        color: var(--text);
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 11px 14px;
+        font-weight: 700;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+      }
+
+      button:hover {
+        filter: brightness(0.96);
+      }
+
+      .secondary {
+        background: var(--surface-alt);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: end;
+        margin-bottom: 16px;
+      }
+
+      .toolbar label {
+        min-width: 220px;
+        flex: 1;
+      }
+
+      .empty-state {
+        margin: 0;
+        padding: 20px;
+        border-radius: 12px;
+        background: var(--surface-alt);
+        color: var(--muted);
+      }
+
+      .dashboard {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        margin-bottom: 24px;
+      }
+
+      .stat {
+        display: grid;
+        gap: 8px;
+        padding: 16px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #fff, #f6f9fe);
+        border: 1px solid var(--border);
+      }
+
+      .stat small {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .stat strong {
+        font-size: 1.5rem;
+      }
+
+      .stat .exercise-name {
+        font-size: 1.1rem;
+      }
+
+      .graph-list {
+        display: grid;
+        gap: 16px;
+      }
+
+      .graph-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+
+      .graph-meta {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .graph-shell {
+        margin-top: 12px;
+        padding: 12px;
+        background: var(--surface-alt);
+        border-radius: 14px;
+      }
+
+      svg {
+        width: 100%;
+        height: 240px;
+        display: block;
+      }
+
+      .point-labels {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-top: 8px;
+      }
+
+      .measurement-list {
+        margin: 12px 0 0;
+        padding-left: 18px;
+        color: var(--muted);
+      }
+
+      .measurement-list li + li {
+        margin-top: 6px;
+      }
+
+      .message {
+        min-height: 1.4em;
+        color: var(--muted);
+        margin: 6px 0 0;
+      }
+
+      .message.error {
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>Exercise Progress Tracker</h1>
+        <p>
+          Track exercise weights over time, store everything in IndexedDB, and
+          review growth trends with per-exercise graphs and dashboard summaries.
+        </p>
+      </section>
+
+      <section class="grid two-up">
+        <article class="card">
+          <h2>Add exercise</h2>
+          <form id="exercise-form">
+            <label>
+              Exercise name
+              <input
+                id="exercise-name"
+                name="exerciseName"
+                type="text"
+                placeholder="Bicep Curl"
+                required
+              />
+            </label>
+            <button type="submit">Save exercise</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <h2>Add measurement</h2>
+          <form id="measurement-form">
+            <label>
+              Exercise
+              <select id="measurement-exercise" name="exerciseId" required></select>
+            </label>
+            <label>
+              Weight
+              <input
+                id="measurement-weight"
+                name="weight"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="20"
+                required
+              />
+            </label>
+            <label>
+              Date
+              <input id="measurement-date" name="date" type="date" required />
+            </label>
+            <button type="submit">Save measurement</button>
+          </form>
+          <p id="form-message" class="message" role="status" aria-live="polite"></p>
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="toolbar">
+          <label>
+            Filter by exercise
+            <select id="exercise-filter"></select>
+          </label>
+          <button id="reset-data" class="secondary" type="button">
+            Reset demo data
+          </button>
+        </div>
+
+        <h2>Dashboard</h2>
+        <div id="dashboard" class="grid dashboard"></div>
+
+        <h2>Exercise graphs</h2>
+        <div id="graphs" class="graph-list"></div>
+      </section>
+    </main>
+
+    <script>
+      const DB_NAME = "exercise-progress-db";
+      const DB_VERSION = 1;
+      const EXERCISE_STORE = "exercises";
+      const MEASUREMENT_STORE = "measurements";
+      const DEFAULT_EXERCISES = [
+        { name: "Bicep Curl" },
+        { name: "One armed Row" },
+      ];
+      const DEFAULT_MEASUREMENTS = [
+        { exerciseName: "Bicep Curl", weight: 12, date: daysAgo(21) },
+        { exerciseName: "Bicep Curl", weight: 14, date: daysAgo(14) },
+        { exerciseName: "Bicep Curl", weight: 15, date: daysAgo(7) },
+        { exerciseName: "One armed Row", weight: 22, date: daysAgo(28) },
+        { exerciseName: "One armed Row", weight: 24, date: daysAgo(14) },
+        { exerciseName: "One armed Row", weight: 26, date: daysAgo(3) },
+      ];
+
+      const exerciseForm = document.getElementById("exercise-form");
+      const measurementForm = document.getElementById("measurement-form");
+      const exerciseNameInput = document.getElementById("exercise-name");
+      const measurementExerciseSelect = document.getElementById("measurement-exercise");
+      const measurementWeightInput = document.getElementById("measurement-weight");
+      const measurementDateInput = document.getElementById("measurement-date");
+      const exerciseFilter = document.getElementById("exercise-filter");
+      const dashboard = document.getElementById("dashboard");
+      const graphs = document.getElementById("graphs");
+      const formMessage = document.getElementById("form-message");
+      const resetDataButton = document.getElementById("reset-data");
+
+      let db;
+      let state = { exercises: [], measurements: [] };
+
+      measurementDateInput.value = today();
+
+      init().catch((error) => {
+        setMessage(error.message || "Unable to load application data.", true);
+      });
+
+      exerciseForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const name = exerciseNameInput.value.trim();
+        if (!name) {
+          setMessage("Enter an exercise name.", true);
+          return;
+        }
+
+        const existing = state.exercises.find(
+          (exercise) => exercise.name.toLowerCase() === name.toLowerCase()
+        );
+        if (existing) {
+          setMessage("That exercise already exists.", true);
+          return;
+        }
+
+        await addRecord(EXERCISE_STORE, { name });
+        exerciseForm.reset();
+        await refreshState();
+        setMessage(`Saved ${name}.`);
+      });
+
+      measurementForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const exerciseId = Number(measurementExerciseSelect.value);
+        const weight = Number(measurementWeightInput.value);
+        const date = measurementDateInput.value;
+
+        if (!exerciseId || !Number.isFinite(weight) || weight <= 0 || !date) {
+          setMessage("Provide an exercise, weight, and date.", true);
+          return;
+        }
+
+        await addRecord(MEASUREMENT_STORE, { exerciseId, weight, date });
+        measurementForm.reset();
+        measurementDateInput.value = today();
+        measurementExerciseSelect.value = String(exerciseId);
+        await refreshState();
+        setMessage("Measurement saved.");
+      });
+
+      exerciseFilter.addEventListener("change", () => {
+        render();
+      });
+
+      resetDataButton.addEventListener("click", async () => {
+        await resetDemoData();
+        setMessage("Demo data restored.");
+      });
+
+      async function init() {
+        db = await openDb();
+        await seedDefaultsIfNeeded();
+        await refreshState();
+      }
+
+      function openDb() {
+        return new Promise((resolve, reject) => {
+          const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+
+          request.onupgradeneeded = () => {
+            const database = request.result;
+
+            if (!database.objectStoreNames.contains(EXERCISE_STORE)) {
+              const exercises = database.createObjectStore(EXERCISE_STORE, {
+                keyPath: "id",
+                autoIncrement: true,
+              });
+              exercises.createIndex("name", "name", { unique: true });
+            }
+
+            if (!database.objectStoreNames.contains(MEASUREMENT_STORE)) {
+              const measurements = database.createObjectStore(MEASUREMENT_STORE, {
+                keyPath: "id",
+                autoIncrement: true,
+              });
+              measurements.createIndex("exerciseId", "exerciseId", { unique: false });
+              measurements.createIndex("date", "date", { unique: false });
+            }
+          };
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function seedDefaultsIfNeeded() {
+        const existingExercises = await getAll(EXERCISE_STORE);
+        if (existingExercises.length > 0) {
+          return;
+        }
+
+        for (const exercise of DEFAULT_EXERCISES) {
+          await addRecord(EXERCISE_STORE, exercise);
+        }
+
+        const savedExercises = await getAll(EXERCISE_STORE);
+        const byName = new Map(savedExercises.map((exercise) => [exercise.name, exercise.id]));
+
+        for (const measurement of DEFAULT_MEASUREMENTS) {
+          await addRecord(MEASUREMENT_STORE, {
+            exerciseId: byName.get(measurement.exerciseName),
+            weight: measurement.weight,
+            date: measurement.date,
+          });
+        }
+      }
+
+      async function resetDemoData() {
+        await clearStore(MEASUREMENT_STORE);
+        await clearStore(EXERCISE_STORE);
+        await seedDefaultsIfNeeded();
+        await refreshState();
+      }
+
+      async function refreshState() {
+        const [exercises, measurements] = await Promise.all([
+          getAll(EXERCISE_STORE),
+          getAll(MEASUREMENT_STORE),
+        ]);
+
+        state = {
+          exercises: exercises.sort((left, right) => left.name.localeCompare(right.name)),
+          measurements: measurements.sort((left, right) =>
+            left.date === right.date
+              ? left.weight - right.weight
+              : left.date.localeCompare(right.date)
+          ),
+        };
+
+        syncSelectors();
+        render();
+      }
+
+      function syncSelectors() {
+        const selectedMeasurementExercise = measurementExerciseSelect.value;
+        const selectedFilter = exerciseFilter.value;
+        const exerciseOptions = state.exercises.map(
+          (exercise) => `<option value="${exercise.id}">${escapeHtml(exercise.name)}</option>`
+        );
+
+        measurementExerciseSelect.innerHTML = exerciseOptions.length
+          ? exerciseOptions.join("")
+          : '<option value="">Add an exercise first</option>';
+
+        exerciseFilter.innerHTML = [
+          '<option value="all">All exercises</option>',
+          ...exerciseOptions,
+        ].join("");
+
+        if (exerciseOptions.length) {
+          measurementExerciseSelect.value =
+            selectedMeasurementExercise && state.exercises.some((exercise) => String(exercise.id) === selectedMeasurementExercise)
+              ? selectedMeasurementExercise
+              : String(state.exercises[0].id);
+        }
+
+        exerciseFilter.value =
+          selectedFilter && (selectedFilter === "all" || state.exercises.some((exercise) => String(exercise.id) === selectedFilter))
+            ? selectedFilter
+            : "all";
+      }
+
+      function render() {
+        const selectedExerciseId = exerciseFilter.value === "all" ? null : Number(exerciseFilter.value);
+        const exercises = selectedExerciseId
+          ? state.exercises.filter((exercise) => exercise.id === selectedExerciseId)
+          : state.exercises;
+
+        if (!exercises.length) {
+          dashboard.innerHTML = '<p class="empty-state">Add your first exercise to start tracking progress.</p>';
+          graphs.innerHTML = "";
+          return;
+        }
+
+        const exerciseSummaries = exercises.map((exercise) =>
+          summarizeExercise(exercise, state.measurements.filter((item) => item.exerciseId === exercise.id))
+        );
+
+        dashboard.innerHTML = exerciseSummaries
+          .map(
+            (summary) => `
+              <article class="stat">
+                <small class="exercise-name">${escapeHtml(summary.exercise.name)}</small>
+                <strong>${summary.latestWeightText}</strong>
+                <span>Growth rate: ${summary.growthRateText}</span>
+                <span>Total change: ${summary.totalChangeText}</span>
+                <span>Measurements: ${summary.measurements.length}</span>
+              </article>
+            `
+          )
+          .join("");
+
+        graphs.innerHTML = exerciseSummaries
+          .map((summary) => renderGraphCard(summary))
+          .join("");
+      }
+
+      function summarizeExercise(exercise, measurements) {
+        const ordered = measurements.slice().sort((left, right) => left.date.localeCompare(right.date));
+        const first = ordered[0];
+        const last = ordered[ordered.length - 1];
+        const latestWeightText = last ? `${formatWeight(last.weight)}` : "No data yet";
+        const totalChange = first && last ? last.weight - first.weight : 0;
+        const daySpan = first && last ? Math.max(daysBetween(first.date, last.date), 1) : 0;
+        const weeklyGrowth = daySpan ? (totalChange / daySpan) * 7 : 0;
+
+        return {
+          exercise,
+          measurements: ordered,
+          latestWeightText,
+          totalChangeText: ordered.length > 1 ? formatDelta(totalChange) : "N/A",
+          growthRateText: ordered.length > 1 ? `${formatSignedNumber(weeklyGrowth)} / week` : "Need 2+ measurements",
+        };
+      }
+
+      function renderGraphCard(summary) {
+        const svg = summary.measurements.length > 1 ? createSvg(summary.measurements) : "";
+        const list = summary.measurements.length
+          ? `<ol class="measurement-list">${summary.measurements
+              .map(
+                (measurement) =>
+                  `<li>${escapeHtml(measurement.date)} — ${formatWeight(measurement.weight)}</li>`
+              )
+              .join("")}</ol>`
+          : '<p class="empty-state">No measurements for this exercise yet.</p>';
+
+        return `
+          <article class="card">
+            <div class="graph-header">
+              <div>
+                <h3>${escapeHtml(summary.exercise.name)}</h3>
+                <p class="graph-meta">Latest: ${summary.latestWeightText}</p>
+              </div>
+              <p class="graph-meta">Growth rate: ${summary.growthRateText}</p>
+            </div>
+            <div class="graph-shell">
+              ${
+                svg ||
+                '<p class="empty-state">Add at least two measurements to draw a graph.</p>'
+              }
+              ${summary.measurements.length > 1
+                ? `<div class="point-labels"><span>${escapeHtml(summary.measurements[0].date)}</span><span>${escapeHtml(summary.measurements[summary.measurements.length - 1].date)}</span></div>`
+                : ""}
+            </div>
+            ${list}
+          </article>
+        `;
+      }
+
+      function createSvg(measurements) {
+        const width = 640;
+        const height = 240;
+        const padding = 28;
+        const weights = measurements.map((measurement) => measurement.weight);
+        const minWeight = Math.min(...weights);
+        const maxWeight = Math.max(...weights);
+        const weightRange = maxWeight - minWeight || 1;
+
+        const points = measurements.map((measurement, index) => {
+          const x =
+            padding +
+            (index / Math.max(measurements.length - 1, 1)) * (width - padding * 2);
+          const y =
+            height -
+            padding -
+            ((measurement.weight - minWeight) / weightRange) * (height - padding * 2);
+          return { x, y, label: measurement.date, weight: measurement.weight };
+        });
+
+        const line = points.map((point) => `${point.x},${point.y}`).join(" ");
+        const guideLines = [0, 0.5, 1]
+          .map((ratio) => {
+            const y = padding + ratio * (height - padding * 2);
+            const label = formatWeight(maxWeight - ratio * weightRange);
+            return `
+              <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#d6dfeb" stroke-dasharray="4 4" />
+              <text x="0" y="${y + 4}" fill="#54708c" font-size="12">${label}</text>
+            `;
+          })
+          .join("");
+
+        const circles = points
+          .map(
+            (point) => `
+              <circle cx="${point.x}" cy="${point.y}" r="4" fill="#286dc9"></circle>
+            `
+          )
+          .join("");
+
+        return `
+          <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Exercise weight graph">
+            ${guideLines}
+            <polyline
+              fill="none"
+              stroke="#286dc9"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              points="${line}"
+            ></polyline>
+            ${circles}
+          </svg>
+        `;
+      }
+
+      function getAll(storeName) {
+        return new Promise((resolve, reject) => {
+          const request = db.transaction(storeName, "readonly").objectStore(storeName).getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      function addRecord(storeName, value) {
+        return new Promise((resolve, reject) => {
+          const request = db.transaction(storeName, "readwrite").objectStore(storeName).add(value);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      function clearStore(storeName) {
+        return new Promise((resolve, reject) => {
+          const request = db.transaction(storeName, "readwrite").objectStore(storeName).clear();
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      function setMessage(message, isError = false) {
+        formMessage.textContent = message;
+        formMessage.className = isError ? "message error" : "message";
+      }
+
+      function daysAgo(days) {
+        const date = new Date();
+        date.setDate(date.getDate() - days);
+        return date.toISOString().slice(0, 10);
+      }
+
+      function today() {
+        return new Date().toISOString().slice(0, 10);
+      }
+
+      function daysBetween(start, end) {
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        return Math.round((endDate - startDate) / 86400000);
+      }
+
+      function formatWeight(weight) {
+        return `${Number(weight).toFixed(2)} kg`;
+      }
+
+      function formatSignedNumber(value) {
+        const sign = value > 0 ? "+" : "";
+        return `${sign}${Number(value).toFixed(2)} kg`;
+      }
+
+      function formatDelta(value) {
+        return value === 0 ? "0.00 kg" : formatSignedNumber(value);
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+    </script>
+  </body>
+</html>
