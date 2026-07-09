@@ -303,6 +303,7 @@
       const DB_VERSION = 1;
       const EXERCISE_STORE = "exercises";
       const MEASUREMENT_STORE = "measurements";
+      const MS_PER_DAY = 86400000;
       const DEFAULT_EXERCISES = [
         { name: "Bicep Curl" },
         { name: "One-armed Row" },
@@ -549,7 +550,10 @@
           measurements: ordered,
           latestWeightText,
           totalChangeText: ordered.length > 1 ? formatDelta(totalChange) : "N/A",
-          growthRateText: ordered.length > 1 ? `${formatSignedNumber(weeklyGrowth)} / week` : "Need 2+ measurements",
+          growthRateText:
+            ordered.length > 1
+              ? `${formatSignedNumber(weeklyGrowth)} / week`
+              : "Needs at least 2 measurements",
         };
       }
 
@@ -685,7 +689,7 @@
       function daysBetween(start, end) {
         const startDate = new Date(start);
         const endDate = new Date(end);
-        return Math.round((endDate - startDate) / 86400000);
+        return Math.round((endDate - startDate) / MS_PER_DAY);
       }
 
       function formatWeight(weight) {
