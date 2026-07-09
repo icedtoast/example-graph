@@ -475,6 +475,12 @@
       function syncSelectors() {
         const selectedMeasurementExercise = measurementExerciseSelect.value;
         const selectedFilter = exerciseFilter.value;
+        const hasSelectedMeasurementExercise = state.exercises.some(
+          (exercise) => String(exercise.id) === selectedMeasurementExercise
+        );
+        const hasSelectedFilter =
+          selectedFilter === "all" ||
+          state.exercises.some((exercise) => String(exercise.id) === selectedFilter);
         const exerciseOptions = state.exercises.map(
           (exercise) => `<option value="${exercise.id}">${escapeHtml(exercise.name)}</option>`
         );
@@ -490,15 +496,13 @@
 
         if (exerciseOptions.length) {
           measurementExerciseSelect.value =
-            selectedMeasurementExercise && state.exercises.some((exercise) => String(exercise.id) === selectedMeasurementExercise)
+            selectedMeasurementExercise && hasSelectedMeasurementExercise
               ? selectedMeasurementExercise
               : String(state.exercises[0].id);
         }
 
         exerciseFilter.value =
-          selectedFilter && (selectedFilter === "all" || state.exercises.some((exercise) => String(exercise.id) === selectedFilter))
-            ? selectedFilter
-            : "all";
+          selectedFilter && hasSelectedFilter ? selectedFilter : "all";
       }
 
       function render() {
@@ -559,6 +563,8 @@
 
       function renderGraphCard(summary) {
         const svg = summary.measurements.length > 1 ? createSvg(summary.measurements) : "";
+        const firstDate = summary.measurements[0]?.date;
+        const lastDate = summary.measurements[summary.measurements.length - 1]?.date;
         const list = summary.measurements.length
           ? `<ol class="measurement-list">${summary.measurements
               .map(
@@ -583,7 +589,7 @@
                 '<p class="empty-state">Add at least two measurements to draw a graph.</p>'
               }
               ${summary.measurements.length > 1
-                ? `<div class="point-labels"><span>${escapeHtml(summary.measurements[0].date)}</span><span>${escapeHtml(summary.measurements[summary.measurements.length - 1].date)}</span></div>`
+                ? `<div class="point-labels"><span>${escapeHtml(firstDate)}</span><span>${escapeHtml(lastDate)}</span></div>`
                 : ""}
             </div>
             ${list}
