@@ -503,7 +503,10 @@
           async add(storeName, value) {
             assertStoreName(storeName);
             const data = loadData();
-            const id = data.counters[storeName] + 1;
+            const currentCounter = Number.isInteger(data.counters[storeName]) && data.counters[storeName] >= 0
+              ? data.counters[storeName]
+              : 0;
+            const id = currentCounter + 1;
             data.counters[storeName] = id;
             data[storeName].push({ ...value, id });
             saveData(data);
