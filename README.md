@@ -6,7 +6,7 @@ Static single-page app for tracking exercise progress over time.
 
 - Runs as a plain GitHub Pages friendly SPA
 - Stores exercises and measurements in IndexedDB
-- Tracks named exercises such as `Bicep Curl` and `One armed Row`
+- Tracks named exercises such as `Bicep Curl` and `One-armed Row`
 - Shows dashboard summaries and per-exercise weight graphs
 - Calculates growth rate from the first and latest measurements for each exercise
 
@@ -16,7 +16,7 @@ Because the app uses IndexedDB, serve the repository over HTTP instead of openin
 the file directly:
 
 ```bash
-cd /home/runner/work/example-graph/example-graph
+cd example-graph
 python3 -m http.server 8000
 ```
 
