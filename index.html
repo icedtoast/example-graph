@@ -303,7 +303,8 @@
       const DB_VERSION = 1;
       const EXERCISE_STORE = "exercises";
       const MEASUREMENT_STORE = "measurements";
-      const MS_PER_DAY = 86400000;
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      const DEFAULT_WEIGHT_RANGE = 1;
       const DEFAULT_EXERCISES = [
         { name: "Bicep Curl" },
         { name: "One-armed Row" },
@@ -460,8 +461,10 @@
         ]);
 
         state = {
-          exercises: exercises.sort((left, right) => left.name.localeCompare(right.name)),
-          measurements: measurements.sort((left, right) =>
+          exercises: exercises
+            .slice()
+            .sort((left, right) => left.name.localeCompare(right.name)),
+          measurements: measurements.slice().sort((left, right) =>
             left.date === right.date
               ? left.weight - right.weight
               : left.date.localeCompare(right.date)
@@ -541,28 +544,29 @@
       }
 
       function summarizeExercise(exercise, measurements) {
-        const ordered = measurements.slice().sort((left, right) => left.date.localeCompare(right.date));
-        const first = ordered[0];
-        const last = ordered[ordered.length - 1];
+        const first = measurements[0];
+        const last = measurements[measurements.length - 1];
         const latestWeightText = last ? `${formatWeight(last.weight)}` : "No data yet";
         const totalChange = first && last ? last.weight - first.weight : 0;
         const daySpan = first && last ? Math.max(daysBetween(first.date, last.date), 1) : 0;
         const weeklyGrowth = daySpan ? (totalChange / daySpan) * 7 : 0;
+        const hasTrendData = measurements.length > 1;
 
         return {
           exercise,
-          measurements: ordered,
+          measurements,
+          hasTrendData,
           latestWeightText,
-          totalChangeText: ordered.length > 1 ? formatDelta(totalChange) : "N/A",
+          totalChangeText: hasTrendData ? formatDelta(totalChange) : "N/A",
           growthRateText:
-            ordered.length > 1
+            hasTrendData
               ? `${formatSignedNumber(weeklyGrowth)} / week`
               : "Needs at least 2 measurements",
         };
       }
 
       function renderGraphCard(summary) {
-        const svg = summary.measurements.length > 1 ? createSvg(summary.measurements) : "";
+        const svg = summary.hasTrendData ? createSvg(summary.measurements) : "";
         const firstDate = summary.measurements[0]?.date;
         const lastDate = summary.measurements[summary.measurements.length - 1]?.date;
         const list = summary.measurements.length
@@ -588,7 +592,7 @@
                 svg ||
                 '<p class="empty-state">Add at least two measurements to draw a graph.</p>'
               }
-              ${summary.measurements.length > 1
+              ${summary.hasTrendData
                 ? `<div class="point-labels"><span>${escapeHtml(firstDate)}</span><span>${escapeHtml(lastDate)}</span></div>`
                 : ""}
             </div>
@@ -604,7 +608,7 @@
         const weights = measurements.map((measurement) => measurement.weight);
         const minWeight = Math.min(...weights);
         const maxWeight = Math.max(...weights);
-        const weightRange = maxWeight - minWeight || 1;
+        const weightRange = maxWeight - minWeight || DEFAULT_WEIGHT_RANGE;
 
         const points = measurements.map((measurement, index) => {
           const x =
