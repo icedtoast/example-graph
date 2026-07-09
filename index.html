@@ -303,6 +303,7 @@
       const DB_VERSION = 1;
       const EXERCISE_STORE = "exercises";
       const MEASUREMENT_STORE = "measurements";
+      const LOCAL_STORAGE_KEY = "exercise-progress-db-local-v1";
       const MS_PER_DAY = 24 * 60 * 60 * 1000;
       const MIN_WEIGHT_RANGE_FOR_SCALING = 1;
       const DEFAULT_EXERCISES = [
@@ -330,7 +331,7 @@
       const formMessage = document.getElementById("form-message");
       const resetDataButton = document.getElementById("reset-data");
 
-      let db;
+      let storage;
       let state = { exercises: [], measurements: [] };
 
       measurementDateInput.value = today();
@@ -390,9 +391,98 @@
       });
 
       async function init() {
-        db = await openDb();
+        storage = await createStorage();
         await seedDefaultsIfNeeded();
         await refreshState();
+      }
+
+      async function createStorage() {
+        if (window.indexedDB) {
+          try {
+            const database = await openDb();
+            return createIndexedDbStorage(database);
+          } catch (error) {
+            setMessage(
+              "IndexedDB unavailable. Using local storage fallback for this session."
+            );
+          }
+        }
+
+        return createLocalStorageStorage();
+      }
+
+      function createIndexedDbStorage(database) {
+        return {
+          getAll(storeName) {
+            return new Promise((resolve, reject) => {
+              const request = database.transaction(storeName, "readonly").objectStore(storeName).getAll();
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error);
+            });
+          },
+          add(storeName, value) {
+            return new Promise((resolve, reject) => {
+              const request = database.transaction(storeName, "readwrite").objectStore(storeName).add(value);
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error);
+            });
+          },
+          clear(storeName) {
+            return new Promise((resolve, reject) => {
+              const request = database.transaction(storeName, "readwrite").objectStore(storeName).clear();
+              request.onsuccess = () => resolve();
+              request.onerror = () => reject(request.error);
+            });
+          },
+        };
+      }
+
+      function createLocalStorageStorage() {
+        function loadData() {
+          try {
+            const parsed = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+            if (
+              parsed &&
+              Array.isArray(parsed.exercises) &&
+              Array.isArray(parsed.measurements) &&
+              parsed.counters &&
+              Number.isInteger(parsed.counters.exercises) &&
+              Number.isInteger(parsed.counters.measurements)
+            ) {
+              return parsed;
+            }
+          } catch (error) {}
+
+          return {
+            exercises: [],
+            measurements: [],
+            counters: { exercises: 0, measurements: 0 },
+          };
+        }
+
+        function saveData(data) {
+          window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+        }
+
+        return {
+          async getAll(storeName) {
+            const data = loadData();
+            return data[storeName].slice();
+          },
+          async add(storeName, value) {
+            const data = loadData();
+            const id = data.counters[storeName] + 1;
+            data.counters[storeName] = id;
+            data[storeName].push({ ...value, id });
+            saveData(data);
+            return id;
+          },
+          async clear(storeName) {
+            const data = loadData();
+            data[storeName] = [];
+            saveData(data);
+          },
+        };
       }
 
       function openDb() {
@@ -669,27 +759,15 @@
       }
 
       function getAll(storeName) {
-        return new Promise((resolve, reject) => {
-          const request = db.transaction(storeName, "readonly").objectStore(storeName).getAll();
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
+        return storage.getAll(storeName);
       }
 
       function addRecord(storeName, value) {
-        return new Promise((resolve, reject) => {
-          const request = db.transaction(storeName, "readwrite").objectStore(storeName).add(value);
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
+        return storage.add(storeName, value);
       }
 
       function clearStore(storeName) {
-        return new Promise((resolve, reject) => {
-          const request = db.transaction(storeName, "readwrite").objectStore(storeName).clear();
-          request.onsuccess = () => resolve();
-          request.onerror = () => reject(request.error);
-        });
+        return storage.clear(storeName);
       }
 
       function setMessage(message, isError = false) {
