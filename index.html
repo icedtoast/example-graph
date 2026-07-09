@@ -414,15 +414,19 @@
       function createIndexedDbStorage(database) {
         function assertStoreName(storeName) {
           if (storeName !== EXERCISE_STORE && storeName !== MEASUREMENT_STORE) {
-            throw new Error("Unknown store name.");
+            throw new Error(`Unknown store name: ${storeName}`);
           }
+        }
+
+        function getObjectStore(storeName, mode) {
+          return database.transaction(storeName, mode).objectStore(storeName);
         }
 
         return {
           getAll(storeName) {
             assertStoreName(storeName);
             return new Promise((resolve, reject) => {
-              const request = database.transaction(storeName, "readonly").objectStore(storeName).getAll();
+              const request = getObjectStore(storeName, "readonly").getAll();
               request.onsuccess = () => resolve(request.result);
               request.onerror = () => reject(request.error);
             });
@@ -430,7 +434,7 @@
           add(storeName, value) {
             assertStoreName(storeName);
             return new Promise((resolve, reject) => {
-              const request = database.transaction(storeName, "readwrite").objectStore(storeName).add(value);
+              const request = getObjectStore(storeName, "readwrite").add(value);
               request.onsuccess = () => resolve(request.result);
               request.onerror = () => reject(request.error);
             });
@@ -438,7 +442,7 @@
           clear(storeName) {
             assertStoreName(storeName);
             return new Promise((resolve, reject) => {
-              const request = database.transaction(storeName, "readwrite").objectStore(storeName).clear();
+              const request = getObjectStore(storeName, "readwrite").clear();
               request.onsuccess = () => resolve();
               request.onerror = () => reject(request.error);
             });
@@ -449,7 +453,7 @@
       function createLocalStorageStorage() {
         function assertStoreName(storeName) {
           if (storeName !== EXERCISE_STORE && storeName !== MEASUREMENT_STORE) {
-            throw new Error("Unknown store name.");
+            throw new Error(`Unknown store name: ${storeName}`);
           }
         }
 
